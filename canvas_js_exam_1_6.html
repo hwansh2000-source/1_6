@@ -1,0 +1,246 @@
+<!DOCTYPE html> 
+<html lang="en"> <!-- 기본언어 : 영어-->
+<head>
+    <meta charset="UTF-8" /> <!--페이지 언어 인코딩 형식-->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/> <!--화면크기에 따라 보여지는 크기 맞추기-->
+    <title>Web Animation(canvas_js_css)[1단원-3]</title> 
+    <style>
+        /* 페이지 전체 설정*/
+        body {
+            margin: 0;
+            padding: 0;
+            text-align: center;
+            font-family: sans-serif;
+        }
+        /* 애니메이션 화면 설정 */
+        #canvas {
+            background: #DCD7C9;
+            display: block;
+            margin: 0 auto;
+        }
+
+        /* ★1_5 : pc 안내 문구 기본은 숨김 */
+        .pc-guide {
+            display: none;/* : 화면에 보여지지 않게함*/
+            margin-top: 10px;
+            font-size: 16px;
+            color: #333; 
+            font-weight: bold;
+        }
+        /* PC에서는 600x600 고정 */
+        @media (min-width: 769px) {
+            #canvas {
+                width: 600px;
+                height: 600px;
+          }
+
+            .pc-guide{
+                display:block; /*★1_5 : pc-guide를 pc에서 접속시 보이게함 */
+            }
+        }
+        /* ★1_5 : 버튼들을 감싸는 div 숨기기 (pc에서는 안 보이게하고 스마트폰에서 접속이 보임)*/
+        .controls {
+            display: none; /* 화면에 보이지 않게함 */
+            margin-top: 10px; /* 위쪽 즉 캔버스하고 여백을 10픽셀줌 */
+        }
+
+        /* ★1_5 : 스마트폰에서 보여질 버튼 모양 설정 */
+        .controls button{
+            font-size: 18px; 
+            padding: 10px 20px; 
+            margin: 5px;
+        }
+        /* 화면이 작을 때 (스마트폰 등에서 보인다면 아래 코드동작)
+            화면의 폭이 최대 768픽셀보다 이하이면 아래 css동작함 아니면 위 pc용 css @media (min-width: 769px)동작함
+            어 최근 스마트폰의 해상도는 pc보다도 좋은 경우가 많은데 768픽셀보다 작으면 스마트폰이라니?
+            ★이유 : 스마트폰의 물리적인 해상도는 더 크지만, 화면을 작게 보이도록 하기 위해 **디바이스 픽셀 비율(DRR, devicePixelRatio)**을 사용함
+            현재 기기로 보아도 768 css픽셀이면 모든 스마트폰에서 접속하는 것으로 판단함^^
+        */
+        @media (max-width: 768px) {
+            #canvas {
+                width: 100vw; /* ★1_5 : 스마트폰 화면 canvas 가로 전체 크기로함 */
+                height: 100vw; /* ★1_5 : 화면 canvas 세로 = 가로 (정사각형) */
+            }
+            .controls{
+                display: block; /* ★1_5 : 스마트폰에서 접속시 controls을 보이게함 */
+            }
+            .pc-guide{
+                display: none; /* ★1_5 : pc-guide를 스마트폰 접속시 숨김 */
+            }
+        }
+    </style> 
+</head>
+<body>
+    <!--애니메이션 화면 만들기-->
+    <canvas id="canvas"></canvas> 
+
+    <!-- ★1_5 : 애니메이션 화면 만들기 : 스마트폰에서 접속 할 때만 controls이 보이게됨-->
+    <div class="controls">
+        <button id="leftBtn">◁</button>
+        <button id="rightBtn">▷</button>
+        <button id="upBtn">△</button>
+        <button id="downBtn">▽</button>
+    </div>
+
+    <!--★1_5 : pc 전용 안내 문구-->
+    <div class="pc-guide">
+        PC에서 접속했습니다. 방향키로 이동하세요.<br>
+        스마트폰은 접속 시 보이는 버튼으로 이동하세요.
+    </div>
+
+
+
+    <script>
+        // 캔버스 요소 JS 변수 만들기
+        const drawingBoard = document.getElementById('canvas'); 
+        // 캔버스에 2D그림을 그리는 도구 변수만들기
+        const drawingPen = drawingBoard.getContext('2d'); 
+
+        // 캔버스 내부 해상도는 무조건 600x600 고정(pc, 스마트폰 모두)
+        drawingBoard.width = 600; 
+        drawingBoard.height = 600; 
+
+        //화면 가운데 위치
+        let x = (drawingBoard.width - 10) / 2; 
+        let y = (drawingBoard.height - 10) / 2;
+
+        //주인공 이동속도
+        const moveAmount = 5; 
+
+        // ★1_6 : EEE
+        //주인공 이동함수
+        function moveRight() {
+            x = x + moveAmount;
+        }
+
+        function moveLeft() {
+            x = x - moveAmount;
+        }
+
+        function moveDown() {
+            y = y + moveAmount;
+        }
+
+        function moveUp() {
+            y = y - moveAmount;
+        }
+        //주인공 이동제한
+        function move_limit(){
+            if (x < 0){ //왼쪽이동제한
+                x = 0;
+            }
+            /*if (x > 590){
+                x=590;
+            }
+            if(y < 0){
+                y=0;
+            }
+            if(y > 590){
+                y=590;
+            } */
+        }
+
+        //캔버스 왼쪽 상당에 텍스트 출력함수
+        function drawCoordinate() {
+            drawingPen.fillStyle = 'black';
+            drawingPen.foot = '10px sans-serif';
+            drawingPen.fillText(`x: ${x} y: ${y}`, 10, 20);
+        }
+
+        //주인공출력함수
+        function drawHere() {
+            drawingPen.fillStyle = 'black';
+            drawingPen.fillRect(x, y, 10, 10);
+        }
+
+        // ★1_6 : AAA
+        //  ★1_6 : 방향키 눌림 상태 객체선언
+        // ★1_6 : const 값이 변하지 않고 속성(key)과 값(value)을 기억시킴
+        //  ★1_6 : 내부 속성값 false는 true 또는 false로 변경가능함
+        const keys = {
+            ArrowLeft: false,
+            ArrowRight: false,
+            ArrowUp: false,
+            ArrowDown: false
+        };
+        // ★1_6 : BBB
+        // ★1_6 : 키보드를 keydown 시 처리
+        document.addEventListener('keydown', (e) => {
+            // ★1_6 : e.key는 현재 선택한 키보드를 말한다.
+            // ★1_6 : hasOwnProperty는 keys변수인의 값이 있으면 true 없으면 false를 반환한다.
+            // ★1_6 : 즉 e.key로 keys에 정의 한 키보드가 선택되면 true를 반환해서 아래 조건문을 만족한다.
+            //         왼쪽방향을 선택하면 선택된 키보드 기본값
+            // ★1_6 : ArrowLeft: false를 true로 변경해서 function draw()함수 안쪽의
+            //         if (keys.ArrowLeft) 조건이 true가 되고 moveLeft(); 왼쪽이동 함수를 이동해서
+            // ★1_6 : setInterval(draw, 16); // 60FPS 만큼 캐릭터가 이동한다 즉 타이머 속도만큼 주인공이 이동한다.
+            // ★1_6 : 모르면 선생님에게 질문해서 내용을 이해하자. ^^
+            if (keys.hasOwnProperty(e.key)) {
+                // ★1_6 : 키보드중 keys변수에 기록한 키보드가 keydown 되었을 때 값을 선택 되었다 true로 변경
+                keys[e.key] = true;
+            }
+        });
+
+        // ★1_6 : CCC
+        // ★1_6 : 키보드를 keyup 시 처리
+        document.addEventListener('keyup', (e) => {
+            // ★1_6 : 해당키를 선택하다 keyup하면 해당키 값을 false로 변경해서 멈추게 된다.
+            // ★1_6 : 모르면 선생님에게 질문해서 내용을 이해하자.^^
+            if(keys.hasOwnProperty(e.key)) {
+                // ★1_6 : 키보드중 keys변수에 기록한 키보드가 keyup 되었을 때 값을 선택 되었다 false로 변경
+                keys[e.key] = false;
+            }
+        });
+
+        // 화면에 출력하기
+        function draw() {
+            drawingPen.clearRect(0, 0, canvas.width, canvas.height); //화면지우기
+            drawHere(); //주인공출력함수호출
+
+            move_limit(); //★1_4 : 주인공 이동제한 함수호출
+            drawCoordinate(); //★1_4 : 텍스트 출력 함수호출
+            
+            // ★1_6 : DDD
+            // ★1_6 : 키가 눌려있는 동안 계속 이동(키보드 인식 속도 향상으로 이동을 부드럽게 변경
+            // ★1_6 : 왼쪽 방향키를 선택해서 keys.ArrowLeft 값이 true일때 처리
+            if (keys.ArrowLeft) moveLeft();
+            if (keys.ArrowRight) moveRight();//  ★1_6
+            if (keys.ArrowUp) moveUp(); //  ★1_6
+            if (keys.ArrowDown) moveDown(); // ★1_6
+        }
+       // ★★★1_6 : 방향키보드 선택시 실행되는 순서★★★
+       // 1) AAA : 내부 속성과 값을 ArrowLeft : false 기억함 (모든 방향키)
+       // 2) BBB : 키보드를 누르면(keydown) 호출되어 선택된 키보드 상태를 ArrowLeft : true함(왼쪽방향키선택)
+       // 3) DDD : true 상태의(왼쪽방향키선택) if (keys.ArrowLeft) moveleft(); 실행됨
+       //          moveLeft(); 함수를 호출해서 이동한 계속 누르고 있으면 true되어 계속이동
+       // 4) CCC : 움직이다(왼쪽방향키선택)에서 손을 떼면(keyup)호출되고 ArrowLeft : false가 되어
+       //          if (keys.ArrowLeft) moveLeft(): 호출멍춤
+       // 이렇게 키보드를 선택하면 위 내용이 반복되어 주인공이 이동됨
+
+        setInterval(draw, 16); // 60FPS
+        
+        // ★1_6 : 키다운 방식에서 타이머를 인식하는 방식으로 변경(속도 향항)
+        // ★1_6 : 아래 방법은 주식처리해서 사용하지 않도록 하자.
+        // ★1_6 : 키다운 동작이 느리므로 타이머로 키보드를 이진\ㅔㅏㄹ
+        /*// PC 방향키 조작
+        document.addEventListener('keydown', (e) => {
+            switch (e.key) {
+                case 'ArrowLeft' : moveLeft(); break; 
+                case 'ArrowRight' : moveRight(); break; 
+                case 'ArrowUp' : moveUp(); break; 
+                case 'ArrowDown' : moveDown(); break; 
+            }
+        });*/
+
+        // ★1_5 : 버튼 이벤트 연결 : 버튼을 선택하면 해당 함수를 호출해서 주인공 이동
+        // document : 현재 웹 페이지 전체를 의미
+        // getElementById('leftBtn') : 웹 페이지에서 id가 leftBtn인 **버튼**을 의미
+        // addEventListener : "어떤 일이 일어났을 때" 실행할 코드를 지정해주는 함수
+        // 'click' : 버튼을 마우스로 클릭했을 때 실행하라는 뜻임
+        // moveLeft : 클릭하면 moveLeft함수를 호출함
+        document.getElementById('leftBtn').addEventListener('click', moveLeft);
+        document.getElementById('rightBtn').addEventListener('click', moveRight);
+        document.getElementById('upBtn').addEventListener('click', moveUp);
+        document.getElementById('downBtn').addEventListener('click', moveDown);
+    </script>
+</body>
+</html>
